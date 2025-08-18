@@ -250,20 +250,15 @@ http://bacnet.sourceforge.net/
         self.bbmd_ip_cb = ttk.Combobox(frame, textvariable=self.bbmd_ip_var, width=28)
         self.bbmd_ip_cb.grid(row=2, column=1, padx=5, pady=5)
 
-        ttk.Label(frame, text="BBMD DNET:").grid(row=2, column=2, padx=5, pady=5, sticky=tk.W)
-        self.bbmd_dnet_var = tk.StringVar()
-        self.bbmd_dnet_cb = ttk.Combobox(frame, textvariable=self.bbmd_dnet_var, width=13)
-        self.bbmd_dnet_cb.grid(row=2, column=3, padx=5, pady=5)
-
-        ttk.Label(frame, text="BACnet IP Network #:").grid(row=3, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(frame, text="BACnet IP Network #:").grid(row=2, column=2, padx=5, pady=5, sticky=tk.W)
         self.ip_network_number_var = tk.StringVar()
         self.ip_network_number_cb = ttk.Combobox(frame, textvariable=self.ip_network_number_var, width=13)
-        self.ip_network_number_cb.grid(row=3, column=1, padx=5, pady=5)
+        self.ip_network_number_cb.grid(row=2, column=3, padx=5, pady=5)
         
-        ttk.Label(frame, text="BBMD Port:").grid(row=3, column=2, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(frame, text="BBMD Port:").grid(row=3, column=0, padx=5, pady=5, sticky=tk.W)
         self.ip_port_var = tk.StringVar()
         self.ip_port_cb = ttk.Combobox(frame, textvariable=self.ip_port_var, width=13)
-        self.ip_port_cb.grid(row=3, column=3, padx=5, pady=5)
+        self.ip_port_cb.grid(row=3, column=1, padx=5, pady=5)
 
     def setup_mstp_widgets(self):
         frame = self.mstp_frame
@@ -410,7 +405,6 @@ http://bacnet.sourceforge.net/
         self.instance_number_cb['values'] = self.history.get('instance_number', [])
         self.apdu_timeout_cb['values'] = self.history.get('apdu_timeout', [self.DEFAULTS['apdu_timeout']])
         self.bbmd_ip_cb['values'] = self.history.get('bbmd_ip', [self.DEFAULTS['bbmd_ip']])
-        self.bbmd_dnet_cb['values'] = self.history.get('bbmd_dnet', [])
         self.ip_network_number_cb['values'] = self.history.get('ip_network_number', [self.DEFAULTS['ip_network_number']])
         self.ip_port_cb['values'] = self.history.get('ip_port', [self.DEFAULTS['ip_port']])
         self.com_port_cb['values'] = self.history.get('com_port', ['COM1', 'COM2', 'COM3'])
@@ -488,7 +482,6 @@ http://bacnet.sourceforge.net/
             ip_port_value = self.ip_port_var.get()
             if self.interface_var.get(): env['BACNET_IFACE'] = self.interface_var.get()
             if self.bbmd_ip_var.get(): env['BACNET_BBMD_ADDRESS'] = self.bbmd_ip_var.get()
-            if self.bbmd_dnet_var.get(): env['BACNET_BBMD_DNET'] = self.bbmd_dnet_var.get()
             if self.apdu_timeout_var.get(): env['BACNET_APDU_TIMEOUT'] = self.apdu_timeout_var.get()
             if self.ip_network_number_var.get(): env['BACNET_IP_NETWORK'] = self.ip_network_number_var.get()
             if ip_port_value:
@@ -496,7 +489,6 @@ http://bacnet.sourceforge.net/
             
             self.update_history('apdu_timeout', self.apdu_timeout_var.get())
             self.update_history('bbmd_ip', self.bbmd_ip_var.get())
-            self.update_history('bbmd_dnet', self.bbmd_dnet_var.get())
             self.update_history('ip_network_number', self.ip_network_number_var.get())
             self.update_history('ip_port', ip_port_value)
 
