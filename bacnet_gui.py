@@ -117,7 +117,7 @@ http://bacnet.sourceforge.net/
     def __init__(self):
         super().__init__()
         self.title("BACnet Tools GUI")
-        self.geometry("820x900")
+        self.geometry("860x1032")
 
         self.history = {}
         self.load_history()
@@ -220,7 +220,7 @@ http://bacnet.sourceforge.net/
         self.instance_number_cb.grid(row=0, column=3, padx=5, pady=5)
         ttk.Label(frame, text="Interface:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
         self.interface_var = tk.StringVar()
-        self.interface_cb = ttk.Combobox(frame, textvariable=self.interface_var, width=28)
+        self.interface_cb = ttk.Combobox(frame, textvariable=self.interface_var, width=40)
         interfaces = get_network_interfaces()
         interfaces.insert(0, "")
         self.interface_cb['values'] = interfaces
@@ -230,7 +230,7 @@ http://bacnet.sourceforge.net/
         self.apdu_timeout_var = tk.StringVar()
         self.apdu_timeout_cb = ttk.Combobox(frame, textvariable=self.apdu_timeout_var, width=13)
         self.apdu_timeout_cb.grid(row=1, column=3, padx=5, pady=5)
-        ttk.Label(frame, text="BBMD IP:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(frame, text="BBMD IP (for routing):").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
         self.bbmd_ip_var = tk.StringVar()
         self.bbmd_ip_cb = ttk.Combobox(frame, textvariable=self.bbmd_ip_var, width=28)
         self.bbmd_ip_cb.grid(row=2, column=1, padx=5, pady=5)
@@ -238,7 +238,7 @@ http://bacnet.sourceforge.net/
         self.ip_network_number_var = tk.StringVar()
         self.ip_network_number_cb = ttk.Combobox(frame, textvariable=self.ip_network_number_var, width=13)
         self.ip_network_number_cb.grid(row=2, column=3, padx=5, pady=5)
-        ttk.Label(frame, text="BBMD Port:").grid(row=3, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(frame, text="BBMD Dst Port:").grid(row=3, column=0, padx=5, pady=5, sticky=tk.W)
         self.ip_port_var = tk.StringVar()
         self.ip_port_cb = ttk.Combobox(frame, textvariable=self.ip_port_var, width=13)
         self.ip_port_cb.grid(row=3, column=1, padx=5, pady=5)
@@ -506,7 +506,7 @@ http://bacnet.sourceforge.net/
         if transport == 'ip' or (transport == 'mstp' and self.mstp_mode_var.get() == 'remote'):
             env['BACNET_IP_PORT'] = '0'
             ip_port_value = self.ip_port_var.get()
-            if self.interface_var.get(): env['BACNET_IFACE'] = self.interface_var.get()
+            if self.interface_var.get(): env['BACNET_IFACE'] = self.interface_var.get().split('(')[-1].replace(')', '')
             if self.bbmd_ip_var.get(): env['BACNET_BBMD_ADDRESS'] = self.bbmd_ip_var.get()
             if self.apdu_timeout_var.get(): env['BACNET_APDU_TIMEOUT'] = self.apdu_timeout_var.get()
             if self.ip_network_number_var.get(): env['BACNET_IP_NETWORK'] = self.ip_network_number_var.get()
