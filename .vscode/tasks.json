@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build BACnet-Tools",
+            "type": "shell",
+            "command": "taskkill /IM BACnet-Tools.exe /F /FI STATUS eq RUNNING && py -m PyInstaller --name BACnet-Tools --onefile --windowed --add-data bin;bin main_app.py && copy /Y dist\\BACnet-Tools.exe C:\\Users\\wchrestay\\Box\\Share\\Software\\ && C:\\Users\\wchrestay\\Box\\Share\\Software\\BACnet-Tools.exe",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

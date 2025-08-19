@@ -7,10 +7,10 @@ import os
 import json
 import re
 
-from config import DEFAULTS, HISTORY_FILE, HISTORY_LIMIT
+from config import DEFAULTS, HISTORY_FILE, HISTORY_LIMIT, TAG_MAP
 from ui_components import setup_menu, setup_ip_widgets, setup_mstp_widgets, setup_actions_widgets, setup_object_browser
 from bacnet_logic import execute_bacnet_command
-from utils import get_resource_path # <-- FIX: Added the missing import
+from utils import get_resource_path
 
 class BACnetApp(tk.Tk):
     def __init__(self):
@@ -26,6 +26,7 @@ class BACnetApp(tk.Tk):
         self.current_process = None
         self.last_pinged_device = None
         self.object_data = {}
+        self.TAG_MAP = TAG_MAP
         
         setup_menu(self)
 
