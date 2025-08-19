@@ -117,6 +117,7 @@ http://bacnet.sourceforge.net/
 
         self.history = {}
         self.load_history()
+        self.current_process = None
         
         # --- Menu Bar ---
         self.setup_menu()
@@ -355,6 +356,9 @@ http://bacnet.sourceforge.net/
         self.reset_button = ttk.Button(actions_frame, text="Reset to Defaults", command=self.reset_fields_to_defaults)
         self.reset_button.grid(row=3, column=4, padx=5, pady=10)
 
+        self.stop_button = ttk.Button(actions_frame, text="Stop Command", command=self.stop_current_command, state=tk.DISABLED)
+        self.stop_button.grid(row=3, column=5, padx=5, pady=10)
+
 
     def toggle_transport_fields(self):
         # Forget both frames first to ensure a clean slate
@@ -466,25 +470,61 @@ http://bacnet.sourceforge.net/
         self.output_text.see(tk.END)
         self.update_idletasks()
 
+    def set_ui_state_running(self):
+        self.ping_button.config(state=tk.DISABLED)
+        self.discover_button.config(state=tk.DISABLED)
+        self.read_button.config(state=tk.DISABLED)
+        self.write_button.config(state=tk.DISABLED)
+        self.stop_button.config(state=tk.NORMAL)
+
+    def set_ui_state_idle(self):
+        self.ping_button.config(state=tk.NORMAL)
+        self.discover_button.config(state=tk.NORMAL)
+        self.read_button.config(state=tk.NORMAL)
+        self.write_button.config(state=tk.NORMAL)
+        self.stop_button.config(state=tk.DISABLED)
+
     def run_command_in_thread(self, command, cwd, env):
         thread = threading.Thread(target=self.run_command, args=(command, cwd, env))
         thread.start()
 
     def run_command(self, command, cwd, env):
+        self.after(0, self.set_ui_state_running)
         try:
             self.log(f"Executing: {' '.join(command)}")
-            result = subprocess.run(
-                command, capture_output=True, text=True, timeout=30, env=env, cwd=cwd,
+            self.current_process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd=cwd,
+                env=env,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
-            if result.stdout: self.log("--- SUCCESS ---\n" + result.stdout.strip())
-            if result.stderr: self.log("--- ERROR ---\n" + result.stderr.strip())
+            stdout, stderr = self.current_process.communicate(timeout=30)
+
+            if stdout: self.log("--- SUCCESS ---\n" + stdout.strip())
+            if stderr: self.log("--- ERROR ---\n" + stderr.strip())
+
         except subprocess.TimeoutExpired:
             self.log("--- ERROR: Command timed out. ---")
+            if self.current_process:
+                self.current_process.kill()
+                self.current_process.communicate()
         except Exception as e:
-            self.log(f"--- An unexpected error occurred: {e} ---")
+            if self.current_process and self.current_process.poll() is not None:
+                pass # Process was terminated by user
+            else:
+                self.log(f"--- An unexpected error occurred: {e} ---")
+        finally:
+            self.current_process = None
+            self.after(0, self.set_ui_state_idle)
 
     def execute_bacnet_command(self, command_type):
+        if self.current_process:
+            messagebox.showwarning("Busy", "A command is already running.")
+            return
+
         bin_dir = get_resource_path('bin')
         if not os.path.exists(bin_dir):
             messagebox.showerror("Error", f"'bin' directory not found at: {bin_dir}")
@@ -495,7 +535,7 @@ http://bacnet.sourceforge.net/
         
         transport = self.transport_var.get()
         if transport == 'ip' or (transport == 'mstp' and self.mstp_mode_var.get() == 'remote'):
-            env['BACNET_IP_PORT'] = '0' # Use OS-assigned source port
+            env['BACNET_IP_PORT'] = '0'
             ip_port_value = self.ip_port_var.get()
             if self.interface_var.get(): env['BACNET_IFACE'] = self.interface_var.get()
             if self.bbmd_ip_var.get(): env['BACNET_BBMD_ADDRESS'] = self.bbmd_ip_var.get()
@@ -626,6 +666,14 @@ http://bacnet.sourceforge.net/
 
         if command:
             self.run_command_in_thread(command, bin_dir, env)
+
+    def stop_current_command(self):
+        if self.current_process:
+            try:
+                self.current_process.terminate()
+                self.log("--- Command stopped by user. ---")
+            except Exception as e:
+                self.log(f"--- Error stopping command: {e} ---")
 
     def run_ping(self):
         self.execute_bacnet_command('ping')
