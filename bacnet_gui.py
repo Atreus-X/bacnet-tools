@@ -31,6 +31,7 @@ import socket
 import threading
 import json
 import re
+import psutil # Added for network interface names
 
 HISTORY_FILE = 'bacnet_gui_history.json'
 HISTORY_LIMIT = 10
@@ -47,18 +48,18 @@ def get_resource_path(relative_path):
 
 def get_network_interfaces():
     """
-    Gets a list of non-loopback IPv4 network interfaces.
+    Gets a list of non-loopback IPv4 network interfaces with their names.
     """
     interfaces = []
     try:
-        for info in socket.getaddrinfo(socket.gethostname(), None):
-            if info[0] == socket.AF_INET:
-                ip = info[4][0]
-                if not ip.startswith("127."):
-                    interfaces.append(ip)
-    except socket.gaierror:
-        pass
-    return list(set(interfaces))
+        addrs = psutil.net_if_addrs()
+        for name, addresses in addrs.items():
+            for addr in addresses:
+                if addr.family == socket.AF_INET and not addr.address.startswith("127."):
+                    interfaces.append(f"{name} ({addr.address})")
+    except Exception:
+        pass  # Silently fail if interfaces can't be determined
+    return interfaces
 
 class BACnetApp(tk.Tk):
     # --- About Information ---
@@ -116,7 +117,7 @@ http://bacnet.sourceforge.net/
     def __init__(self):
         super().__init__()
         self.title("BACnet Tools GUI")
-        self.geometry("820x950")
+        self.geometry("820x900")
 
         self.history = {}
         self.load_history()
@@ -153,16 +154,13 @@ http://bacnet.sourceforge.net/
         self.setup_actions_widgets(self.actions_frame)
         self.actions_frame.pack(fill=tk.X, pady=5)
         
-        # --- Paned Window for Object Browser and Output ---
         paned_window = ttk.PanedWindow(main_frame, orient=tk.VERTICAL)
         paned_window.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        # --- Object Browser Frame ---
         browser_frame = ttk.LabelFrame(paned_window, text="Object Browser", padding="10")
         self.setup_object_browser(browser_frame)
         paned_window.add(browser_frame, weight=3)
 
-        # --- Output Frame ---
         output_frame = ttk.LabelFrame(paned_window, text="Output", padding="10")
         self.output_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, width=80, height=10)
         self.output_text.pack(fill=tk.BOTH, expand=True)
@@ -301,21 +299,22 @@ http://bacnet.sourceforge.net/
         self.write_priority_cb.grid(row=2, column=5, padx=5, pady=5, sticky=tk.W)
         self.ping_button = ttk.Button(actions_frame, text="Ping (Who-Is)", command=self.run_ping)
         self.ping_button.grid(row=3, column=0, padx=5, pady=10)
+        self.discover_button = ttk.Button(actions_frame, text="Discover Devices", command=self.run_discover)
+        self.discover_button.grid(row=3, column=1, padx=5, pady=10)
         self.discover_objects_button = ttk.Button(actions_frame, text="Discover Objects", command=self.run_discover_objects, state=tk.DISABLED)
-        self.discover_objects_button.grid(row=3, column=1, padx=5, pady=10)
+        self.discover_objects_button.grid(row=3, column=2, padx=5, pady=10)
         self.read_button = ttk.Button(actions_frame, text="Read Property", command=self.run_read_property)
-        self.read_button.grid(row=3, column=2, padx=5, pady=10)
+        self.read_button.grid(row=3, column=3, padx=5, pady=10)
         self.write_button = ttk.Button(actions_frame, text="Write Property", command=self.run_write_property)
-        self.write_button.grid(row=3, column=3, padx=5, pady=10)
+        self.write_button.grid(row=3, column=4, padx=5, pady=10)
         self.reset_button = ttk.Button(actions_frame, text="Reset to Defaults", command=self.reset_fields_to_defaults)
-        self.reset_button.grid(row=3, column=4, padx=5, pady=10)
+        self.reset_button.grid(row=3, column=5, padx=5, pady=10)
         self.stop_button = ttk.Button(actions_frame, text="Stop Command", command=self.stop_current_command, state=tk.DISABLED)
-        self.stop_button.grid(row=3, column=5, padx=5, pady=10)
+        self.stop_button.grid(row=3, column=6, padx=5, pady=10)
 
     def setup_object_browser(self, parent):
         browser_pane = ttk.PanedWindow(parent, orient=tk.HORIZONTAL)
         browser_pane.pack(fill=tk.BOTH, expand=True)
-        # Object Tree
         tree_frame = ttk.Frame(browser_pane)
         self.object_tree = ttk.Treeview(tree_frame, columns=("Instance",), show="tree headings")
         self.object_tree.heading("#0", text="Object Type")
@@ -324,9 +323,9 @@ http://bacnet.sourceforge.net/
         self.object_tree.column("Instance", width=100)
         self.object_tree.pack(fill=tk.BOTH, expand=True)
         browser_pane.add(tree_frame, weight=1)
-        # Properties Tree
         props_frame = ttk.Frame(browser_pane)
         self.props_tree = ttk.Treeview(props_frame, columns=("Value",), show="headings")
+        self.props_tree.heading("#0", text="Property")
         self.props_tree.heading("Value", text="Value")
         self.props_tree.column("#0", width=150)
         self.props_tree.column("Value", width=200)
@@ -457,6 +456,7 @@ http://bacnet.sourceforge.net/
 
     def set_ui_state_running(self):
         self.ping_button.config(state=tk.DISABLED)
+        self.discover_button.config(state=tk.DISABLED)
         self.discover_objects_button.config(state=tk.DISABLED)
         self.read_button.config(state=tk.DISABLED)
         self.write_button.config(state=tk.DISABLED)
@@ -464,6 +464,7 @@ http://bacnet.sourceforge.net/
 
     def set_ui_state_idle(self):
         self.ping_button.config(state=tk.NORMAL)
+        self.discover_button.config(state=tk.NORMAL)
         self.discover_objects_button.config(state=tk.NORMAL if self.last_pinged_device else tk.DISABLED)
         self.read_button.config(state=tk.NORMAL)
         self.write_button.config(state=tk.NORMAL)
@@ -505,7 +506,7 @@ http://bacnet.sourceforge.net/
         if transport == 'ip' or (transport == 'mstp' and self.mstp_mode_var.get() == 'remote'):
             env['BACNET_IP_PORT'] = '0'
             ip_port_value = self.ip_port_var.get()
-            if self.interface_var.get(): env['BACNET_IFACE'] = self.interface_var.get().split('(')[-1].replace(')', '')
+            if self.interface_var.get(): env['BACNET_IFACE'] = self.interface_var.get()
             if self.bbmd_ip_var.get(): env['BACNET_BBMD_ADDRESS'] = self.bbmd_ip_var.get()
             if self.apdu_timeout_var.get(): env['BACNET_APDU_TIMEOUT'] = self.apdu_timeout_var.get()
             if self.ip_network_number_var.get(): env['BACNET_IP_NETWORK'] = self.ip_network_number_var.get()
@@ -519,7 +520,7 @@ http://bacnet.sourceforge.net/
 
         if transport == 'ip':
             device_identifier = self.instance_number_var.get()
-            if command_type != 'discover_objects' and not device_identifier: messagebox.showerror("Error", "Instance number is required for this action."); return
+            if command_type not in ['discover', 'discover_objects'] and not device_identifier: messagebox.showerror("Error", "Instance number is required for this action."); return
             self.update_history('instance_number', device_identifier)
         elif transport == 'mstp':
             mstp_mode = self.mstp_mode_var.get()
@@ -543,7 +544,7 @@ http://bacnet.sourceforge.net/
                     self.update_history('network_number', device_identifier)
                 else:
                     device_identifier = self.instance_number_var.get()
-                    if command_type != 'discover_objects' and not device_identifier: messagebox.showerror("Error", "Instance # is required for this action.\n(Discover the remote network first to find it)"); return
+                    if command_type not in ['discover', 'discover_objects'] and not device_identifier: messagebox.showerror("Error", "Instance # is required for this action.\n(Discover the remote network first to find it)"); return
                     self.update_history('instance_number', device_identifier)
 
         if command_type == 'read': self.update_history('read_property', self.read_property_var.get())
@@ -557,7 +558,9 @@ http://bacnet.sourceforge.net/
         self.log("--- Starting Command ---")
         
         command, callback = None, None
-        if command_type == 'ping':
+        if command_type == 'discover':
+            command = [os.path.join(bin_dir, 'bacwi.exe'), "-1"]
+        elif command_type == 'ping':
             command = [os.path.join(bin_dir, 'bacwi.exe'), device_identifier]
             callback = self.handle_ping_response
         elif command_type == 'discover_objects':
@@ -594,22 +597,17 @@ http://bacnet.sourceforge.net/
     def parse_and_populate_object_tree(self, output):
         self.object_tree.delete(*self.object_tree.get_children())
         self.object_data.clear()
-        
         current_object_id = None
         object_type_nodes = {}
-
         for line in output.splitlines():
             obj_match = re.match(r'^"([^"]+)",\s*"(\d+)"', line)
             prop_match = re.match(r'^\s+"([^"]+)",\s*(.*)', line)
-            
             if obj_match:
                 obj_type, obj_inst = obj_match.groups()
                 current_object_id = f"{obj_type}:{obj_inst}"
                 self.object_data[current_object_id] = []
-                
                 if obj_type not in object_type_nodes:
                     object_type_nodes[obj_type] = self.object_tree.insert("", "end", text=obj_type, open=False)
-                
                 self.object_tree.insert(object_type_nodes[obj_type], "end", text=obj_inst, values=(obj_inst,), iid=current_object_id)
             elif prop_match and current_object_id:
                 prop_name, prop_value = prop_match.groups()
@@ -631,6 +629,7 @@ http://bacnet.sourceforge.net/
                 self.log(f"--- Error stopping command: {e} ---")
 
     def run_ping(self): self.execute_bacnet_command('ping')
+    def run_discover(self): self.execute_bacnet_command('discover')
     def run_discover_objects(self): self.execute_bacnet_command('discover_objects')
     def run_read_property(self): self.execute_bacnet_command('read')
     def run_write_property(self): self.execute_bacnet_command('write')
