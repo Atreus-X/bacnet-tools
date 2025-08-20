@@ -149,11 +149,9 @@ def setup_object_browser(app_instance, parent):
     browser_pane.pack(fill=tk.BOTH, expand=True)
     
     devices_frame = ttk.Frame(browser_pane)
-    app_instance.device_tree = ttk.Treeview(devices_frame, columns=("IP",), show="headings")
-    app_instance.device_tree.heading("#0", text="Instance")
-    app_instance.device_tree.heading("IP", text="IP Address")
-    app_instance.device_tree.column("#0", width=100)
-    app_instance.device_tree.column("IP", width=150)
+    app_instance.device_tree = ttk.Treeview(devices_frame, show="tree")
+    app_instance.device_tree.heading("#0", text="Device")
+    app_instance.device_tree.column("#0", width=250)
     app_instance.device_tree.pack(fill=tk.BOTH, expand=True)
     browser_pane.add(devices_frame, weight=1)
     app_instance.device_tree.bind("<<TreeviewSelect>>", app_instance.on_device_select)
@@ -179,3 +177,6 @@ def setup_object_browser(app_instance, parent):
     app_instance.props_tree.pack(fill=tk.BOTH, expand=True)
     object_panes.add(props_frame, weight=2)
     app_instance.object_tree.bind("<<TreeviewSelect>>", app_instance.on_object_select)
+    
+    clear_button = ttk.Button(parent, text="Clear", command=app_instance.clear_browser)
+    clear_button.pack(pady=5)

@@ -17,9 +17,7 @@ class BACnetApp(tk.Tk):
         super().__init__()
         self.title("BACnet Tools GUI")
         
-        screen_height = self.winfo_screenheight()
-        app_height = min(950, int(screen_height * 0.9))
-        self.geometry(f"860x{app_height}")
+        self.state('zoomed')
 
         self.history = {}
         self.load_history()
@@ -242,12 +240,13 @@ class BACnetApp(tk.Tk):
             parts = line.split()
             if len(parts) >= 2 and parts[0].isdigit():
                 instance, ip_address = parts[0], parts[2]
-                self.device_tree.insert("", "end", text=instance, values=(ip_address,))
+                device_display = f"{instance} ({ip_address})"
+                self.device_tree.insert("", "end", text=device_display, iid=instance)
 
     def on_device_select(self, event):
         selected_item = self.device_tree.focus()
         if selected_item:
-            instance = self.device_tree.item(selected_item, "text")
+            instance = selected_item
             self.last_pinged_device = instance
             self.run_discover_objects()
     
@@ -293,6 +292,12 @@ class BACnetApp(tk.Tk):
         if selected_id in self.object_data:
             for prop_name, prop_value in self.object_data[selected_id]:
                 self.props_tree.insert("", "end", text=prop_name, values=(prop_value,))
+
+    def clear_browser(self):
+        self.device_tree.delete(*self.device_tree.get_children())
+        self.object_tree.delete(*self.object_tree.get_children())
+        self.props_tree.delete(*self.props_tree.get_children())
+        self.object_data.clear()
 
     def stop_current_command(self):
         if self.current_process:
