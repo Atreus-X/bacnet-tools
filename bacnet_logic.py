@@ -5,7 +5,7 @@ import os
 import subprocess
 import re
 from tkinter import messagebox
-import utils # <-- FIX: Changed import style for robustness
+import utils
 
 def run_command_in_thread(app_instance, command, cwd, env, callback=None):
     """Starts a new thread to run a command."""
@@ -48,7 +48,7 @@ def execute_bacnet_command(app_instance, command_type):
     if app_instance.current_process:
         messagebox.showwarning("Busy", "A command is already running.")
         return
-    bin_dir = utils.get_resource_path('bin') # <-- FIX: Use module prefix
+    bin_dir = utils.get_resource_path('bin')
     if not os.path.exists(bin_dir):
         messagebox.showerror("Error", f"'bin' directory not found at: {bin_dir}")
         return

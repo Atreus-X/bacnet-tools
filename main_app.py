@@ -285,11 +285,11 @@ class BACnetApp(tk.Tk):
             except Exception as e:
                 self.log(f"--- Error stopping command: {e} ---")
 
-    def run_ping(self): execute_bacnet_command(self, 'ping')
-    def run_discover(self): execute_bacnet_command(self, 'discover')
-    def run_discover_objects(self): execute_bacnet_command(self, 'discover_objects')
-    def run_read_property(self): execute_bacnet_command(self, 'read')
-    def run_write_property(self): execute_bacnet_command(self, 'write')
+    def run_ping(self): bacnet_logic.execute_bacnet_command(self, 'ping')
+    def run_discover(self): bacnet_logic.execute_bacnet_command(self, 'discover')
+    def run_discover_objects(self): bacnet_logic.execute_bacnet_command(self, 'discover_objects')
+    def run_read_property(self): bacnet_logic.execute_bacnet_command(self, 'read')
+    def run_write_property(self): bacnet_logic.execute_bacnet_command(self, 'write')
 
 if __name__ == "__main__":
     app = BACnetApp()

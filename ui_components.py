@@ -3,8 +3,8 @@
 
 import tkinter as tk
 from tkinter import ttk
-from utils import get_network_interfaces
-from config import ABOUT_TEXT, TAG_MAP
+import utils
+import config
 
 def setup_menu(app_instance):
     """Creates the main menu bar."""
@@ -24,7 +24,7 @@ def show_about_dialog(app_instance):
     about_window = tk.Toplevel(app_instance)
     about_window.title("About BACnet Tools GUI")
     about_width, about_height = 400, 400
-    label = ttk.Label(about_window, text=ABOUT_TEXT, padding="10", wraplength=about_width - 20, justify=tk.LEFT)
+    label = ttk.Label(about_window, text=config.ABOUT_TEXT, padding="10", wraplength=about_width - 20, justify=tk.LEFT)
     label.pack(expand=True, fill=tk.BOTH)
     ok_button = ttk.Button(about_window, text="OK", command=about_window.destroy)
     ok_button.pack(pady=10)
@@ -50,7 +50,7 @@ def setup_ip_widgets(app_instance):
     ttk.Label(frame, text="Interface:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
     app_instance.interface_var = tk.StringVar()
     app_instance.interface_cb = ttk.Combobox(frame, textvariable=app_instance.interface_var, width=40)
-    interfaces = get_network_interfaces()
+    interfaces = utils.get_network_interfaces()
     interfaces.insert(0, "")
     app_instance.interface_cb['values'] = interfaces
     app_instance.interface_cb.grid(row=1, column=1, padx=5, pady=5)
@@ -79,7 +79,7 @@ def setup_ip_widgets(app_instance):
 def setup_mstp_widgets(app_instance):
     """Creates and places the widgets for the BACnet MS/TP configuration frame."""
     frame = app_instance.mstp_frame
-    app_instance.mstp_mode_var = tk.StringVar(value=app_instance.history.get('last_mstp_mode', 'local'))
+    app_instance.mstp_mode_var = tk.StringVar(value=app_instance.history.get('last_mstp_mode', 'remote'))
     ttk.Radiobutton(frame, text="Local", variable=app_instance.mstp_mode_var, value='local', command=app_instance.toggle_mstp_fields).pack(side=tk.LEFT, padx=10)
     ttk.Radiobutton(frame, text="Remote", variable=app_instance.mstp_mode_var, value='remote', command=app_instance.toggle_mstp_fields).pack(side=tk.LEFT, padx=10)
     app_instance.local_mstp_frame = ttk.Frame(frame)
@@ -122,7 +122,7 @@ def setup_actions_widgets(app_instance, actions_frame):
     ttk.Label(actions_frame, text="Data Type:").grid(row=2, column=2, padx=5, pady=5, sticky=tk.W)
     app_instance.write_tag_var = tk.StringVar()
     app_instance.write_tag_cb = ttk.Combobox(actions_frame, textvariable=app_instance.write_tag_var, width=15, state='readonly')
-    app_instance.write_tag_cb['values'] = list(TAG_MAP.keys())
+    app_instance.write_tag_cb['values'] = list(config.TAG_MAP.keys())
     app_instance.write_tag_cb.grid(row=2, column=3, padx=5, pady=5, sticky=tk.W)
     ttk.Label(actions_frame, text="Priority:").grid(row=2, column=4, padx=5, pady=5, sticky=tk.W)
     app_instance.write_priority_var = tk.StringVar()
