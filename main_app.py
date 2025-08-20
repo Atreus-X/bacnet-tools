@@ -254,21 +254,38 @@ class BACnetApp(tk.Tk):
     def parse_and_populate_object_tree(self, output):
         self.object_tree.delete(*self.object_tree.get_children())
         self.object_data.clear()
-        current_object_id = None
         object_type_nodes = {}
-        for line in output.splitlines():
-            obj_match = re.match(r'^"([^"]+)",\s*"(\d+)"', line)
-            prop_match = re.match(r'^\s+"([^"]+)",\s*(.*)', line)
-            if obj_match:
-                obj_type, obj_inst = obj_match.groups()
-                current_object_id = f"{obj_type}:{obj_inst}"
-                self.object_data[current_object_id] = []
-                if obj_type not in object_type_nodes:
-                    object_type_nodes[obj_type] = self.object_tree.insert("", "end", text=obj_type, open=False)
-                self.object_tree.insert(object_type_nodes[obj_type], "end", text=obj_inst, values=(obj_inst,), iid=current_object_id)
-            elif prop_match and current_object_id:
-                prop_name, prop_value = prop_match.groups()
-                self.object_data[current_object_id].append((prop_name.strip(), prop_value.strip()))
+
+        try:
+            # Isolate the object list from the output
+            object_list_section = output[output.index("List of Objects in Test Device:"):]
+            
+            # Find all object definitions, which are enclosed in curly braces
+            object_blocks = re.findall(r'\{\s*(object-identifier:[^\}]+)\}', object_list_section, re.DOTALL)
+
+            for block in object_blocks:
+                obj_id_match = re.search(r'object-identifier:\s*\(([^,]+),\s*(\d+)\)', block)
+                if obj_id_match:
+                    obj_type, obj_inst = obj_id_match.groups()
+                    obj_type = obj_type.strip()
+                    obj_inst = obj_inst.strip()
+                    current_object_id = f"{obj_type}:{obj_inst}"
+                    self.object_data[current_object_id] = []
+
+                    if obj_type not in object_type_nodes:
+                        object_type_nodes[obj_type] = self.object_tree.insert("", "end", text=obj_type, open=False)
+                    self.object_tree.insert(object_type_nodes[obj_type], "end", text=obj_inst, values=(obj_inst,), iid=current_object_id)
+
+                    # Now parse the properties for the current object
+                    properties = re.findall(r'([\w-]+):\s*(.+)', block)
+                    for prop_name, prop_value in properties:
+                        self.object_data[current_object_id].append((prop_name.strip(), prop_value.strip()))
+
+        except (ValueError, IndexError):
+            # This will happen if "List of Objects in Test Device:" is not found
+            # or if the parsing fails. We can log this or just silently fail.
+            # For now, we will just not populate the tree.
+            pass
 
     def on_object_select(self, event):
         self.props_tree.delete(*self.props_tree.get_children())

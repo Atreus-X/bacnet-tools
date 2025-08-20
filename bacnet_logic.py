@@ -1,6 +1,7 @@
 # bacnet_logic.py
 # This file contains the backend logic for executing BACnet commands.
 
+import tkinter as tk
 import os
 import subprocess
 import re
