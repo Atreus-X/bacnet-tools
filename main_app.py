@@ -7,10 +7,10 @@ import os
 import json
 import re
 
-from config import DEFAULTS, HISTORY_FILE, HISTORY_LIMIT, TAG_MAP
-from ui_components import setup_menu, setup_ip_widgets, setup_mstp_widgets, setup_actions_widgets, setup_object_browser
-from bacnet_logic import execute_bacnet_command
-from utils import get_resource_path
+import config
+import ui_components
+import bacnet_logic
+import utils
 
 class BACnetApp(tk.Tk):
     def __init__(self):
@@ -26,9 +26,9 @@ class BACnetApp(tk.Tk):
         self.current_process = None
         self.last_pinged_device = None
         self.object_data = {}
-        self.TAG_MAP = TAG_MAP
+        self.TAG_MAP = config.TAG_MAP
         
-        setup_menu(self)
+        ui_components.setup_menu(self)
 
         main_canvas = tk.Canvas(self)
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=main_canvas.yview)
@@ -50,18 +50,18 @@ class BACnetApp(tk.Tk):
 
         self.ip_frame = ttk.LabelFrame(main_frame, text="BACnet/IP Configuration", padding="10")
         self.mstp_frame = ttk.LabelFrame(main_frame, text="BACnet MS/TP Configuration", padding="10")
-        setup_ip_widgets(self)
-        setup_mstp_widgets(self)
+        ui_components.setup_ip_widgets(self)
+        ui_components.setup_mstp_widgets(self)
 
         self.actions_frame = ttk.LabelFrame(main_frame, text="Actions", padding="10")
-        setup_actions_widgets(self, self.actions_frame)
+        ui_components.setup_actions_widgets(self, self.actions_frame)
         self.actions_frame.pack(fill=tk.X, pady=5)
         
         paned_window = ttk.PanedWindow(main_frame, orient=tk.VERTICAL)
         paned_window.pack(fill=tk.BOTH, expand=True, pady=5)
 
         browser_frame = ttk.LabelFrame(paned_window, text="Device & Object Browser", padding="10")
-        setup_object_browser(self, browser_frame)
+        ui_components.setup_object_browser(self, browser_frame)
         paned_window.add(browser_frame, weight=3)
 
         output_frame = ttk.LabelFrame(paned_window, text="Output", padding="10")
@@ -150,14 +150,14 @@ class BACnetApp(tk.Tk):
         self.destroy()
 
     def load_history(self):
-        history_path = get_resource_path(HISTORY_FILE)
+        history_path = utils.get_resource_path(config.HISTORY_FILE)
         if os.path.exists(history_path):
             with open(history_path, 'r') as f: self.history = json.load(f)
 
     def save_history(self):
         self.history['last_transport'] = self.transport_var.get()
         self.history['last_mstp_mode'] = self.mstp_mode_var.get()
-        history_path = get_resource_path(HISTORY_FILE)
+        history_path = utils.get_resource_path(config.HISTORY_FILE)
         with open(history_path, 'w') as f: json.dump(self.history, f, indent=4)
 
     def update_history(self, field_key, value):
@@ -165,40 +165,40 @@ class BACnetApp(tk.Tk):
         if field_key not in self.history: self.history[field_key] = []
         if value in self.history[field_key]: self.history[field_key].remove(value)
         self.history[field_key].insert(0, value)
-        self.history[field_key] = self.history[field_key][:HISTORY_LIMIT]
+        self.history[field_key] = self.history[field_key][:config.HISTORY_LIMIT]
 
     def populate_fields_from_history(self):
         self.ip_address_cb['values'] = self.history.get('ip_address', [])
         self.instance_number_cb['values'] = self.history.get('instance_number', [])
-        self.apdu_timeout_cb['values'] = self.history.get('apdu_timeout', [DEFAULTS['apdu_timeout']])
-        self.bbmd_ip_cb['values'] = self.history.get('bbmd_ip', [DEFAULTS['bbmd_ip']])
-        self.ip_network_number_cb['values'] = self.history.get('ip_network_number', [DEFAULTS['ip_network_number']])
-        self.ip_port_cb['values'] = self.history.get('ip_port', [DEFAULTS['ip_port']])
-        self.bbmd_ttl_cb['values'] = self.history.get('bbmd_ttl', [DEFAULTS['bbmd_ttl']])
+        self.apdu_timeout_cb['values'] = self.history.get('apdu_timeout', [config.DEFAULTS['apdu_timeout']])
+        self.bbmd_ip_cb['values'] = self.history.get('bbmd_ip', [config.DEFAULTS['bbmd_ip']])
+        self.ip_network_number_cb['values'] = self.history.get('ip_network_number', [config.DEFAULTS['ip_network_number']])
+        self.ip_port_cb['values'] = self.history.get('ip_port', [config.DEFAULTS['ip_port']])
+        self.bbmd_ttl_cb['values'] = self.history.get('bbmd_ttl', [config.DEFAULTS['bbmd_ttl']])
         self.com_port_cb['values'] = self.history.get('com_port', ['COM1', 'COM2', 'COM3'])
         self.baud_rate_cb['values'] = self.history.get('baud_rate', ['9600', '19200', '38400', '76800'])
         self.mac_address_cb['values'] = self.history.get('mac_address', [])
         self.mstp_instance_cb['values'] = self.history.get('mstp_instance', [])
         self.network_number_cb['values'] = self.history.get('network_number', [])
-        self.read_property_cb['values'] = self.history.get('read_property', [DEFAULTS['read_property']])
-        self.write_property_cb['values'] = self.history.get('write_property', [DEFAULTS['write_property']])
-        self.write_value_cb['values'] = self.history.get('write_value', [DEFAULTS['write_value']])
-        self.write_tag_cb.set(self.history.get('write_tag', DEFAULTS['write_tag']))
-        self.write_priority_cb['values'] = self.history.get('write_priority', [DEFAULTS['write_priority']])
+        self.read_property_cb['values'] = self.history.get('read_property', [config.DEFAULTS['read_property']])
+        self.write_property_cb['values'] = self.history.get('write_property', [config.DEFAULTS['write_property']])
+        self.write_value_cb['values'] = self.history.get('write_value', [config.DEFAULTS['write_value']])
+        self.write_tag_cb.set(self.history.get('write_tag', config.DEFAULTS['write_tag']))
+        self.write_priority_cb['values'] = self.history.get('write_priority', [config.DEFAULTS['write_priority']])
         self.reset_fields_to_defaults(load_from_history=True)
 
     def reset_fields_to_defaults(self, load_from_history=False):
-        if not load_from_history or not self.bbmd_ip_var.get(): self.bbmd_ip_var.set(DEFAULTS['bbmd_ip'])
-        if not load_from_history or not self.ip_network_number_var.get(): self.ip_network_number_var.set(DEFAULTS['ip_network_number'])
-        if not load_from_history or not self.ip_port_var.get(): self.ip_port_var.set(DEFAULTS['ip_port'])
-        if not load_from_history or not self.apdu_timeout_var.get(): self.apdu_timeout_var.set(DEFAULTS['apdu_timeout'])
-        if not load_from_history or not self.bbmd_ttl_var.get(): self.bbmd_ttl_var.set(DEFAULTS['bbmd_ttl'])
-        if not load_from_history or not self.baud_rate_var.get(): self.baud_rate_var.set(DEFAULTS['baud_rate'])
-        if not load_from_history or not self.read_property_var.get(): self.read_property_var.set(DEFAULTS['read_property'])
-        if not load_from_history or not self.write_property_var.get(): self.write_property_var.set(DEFAULTS['write_property'])
-        if not load_from_history or not self.write_value_var.get(): self.write_value_var.set(DEFAULTS['write_value'])
-        if not load_from_history or not self.write_tag_var.get(): self.write_tag_var.set(DEFAULTS['write_tag'])
-        if not load_from_history or not self.write_priority_var.get(): self.write_priority_var.set(DEFAULTS['write_priority'])
+        if not load_from_history or not self.bbmd_ip_var.get(): self.bbmd_ip_var.set(config.DEFAULTS['bbmd_ip'])
+        if not load_from_history or not self.ip_network_number_var.get(): self.ip_network_number_var.set(config.DEFAULTS['ip_network_number'])
+        if not load_from_history or not self.ip_port_var.get(): self.ip_port_var.set(config.DEFAULTS['ip_port'])
+        if not load_from_history or not self.apdu_timeout_var.get(): self.apdu_timeout_var.set(config.DEFAULTS['apdu_timeout'])
+        if not load_from_history or not self.bbmd_ttl_var.get(): self.bbmd_ttl_var.set(config.DEFAULTS['bbmd_ttl'])
+        if not load_from_history or not self.baud_rate_var.get(): self.baud_rate_var.set(config.DEFAULTS['baud_rate'])
+        if not load_from_history or not self.read_property_var.get(): self.read_property_var.set(config.DEFAULTS['read_property'])
+        if not load_from_history or not self.write_property_var.get(): self.write_property_var.set(config.DEFAULTS['write_property'])
+        if not load_from_history or not self.write_value_var.get(): self.write_value_var.set(config.DEFAULTS['write_value'])
+        if not load_from_history or not self.write_tag_var.get(): self.write_tag_var.set(config.DEFAULTS['write_tag'])
+        if not load_from_history or not self.write_priority_var.get(): self.write_priority_var.set(config.DEFAULTS['write_priority'])
 
     def log(self, message):
         self.output_text.insert(tk.END, message + "\n")
