@@ -2,4 +2,4 @@ bin/
 build/
 dist/
 BACnet-Tools.spec
-*.json
+.vscode/
