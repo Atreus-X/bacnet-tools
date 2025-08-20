@@ -4,7 +4,7 @@
 import tkinter as tk
 from tkinter import ttk
 from utils import get_network_interfaces
-from config import ABOUT_TEXT
+from config import ABOUT_TEXT, TAG_MAP
 
 def setup_menu(app_instance):
     """Creates the main menu bar."""
@@ -122,7 +122,7 @@ def setup_actions_widgets(app_instance, actions_frame):
     ttk.Label(actions_frame, text="Data Type:").grid(row=2, column=2, padx=5, pady=5, sticky=tk.W)
     app_instance.write_tag_var = tk.StringVar()
     app_instance.write_tag_cb = ttk.Combobox(actions_frame, textvariable=app_instance.write_tag_var, width=15, state='readonly')
-    app_instance.write_tag_cb['values'] = list(app_instance.TAG_MAP.keys())
+    app_instance.write_tag_cb['values'] = list(TAG_MAP.keys())
     app_instance.write_tag_cb.grid(row=2, column=3, padx=5, pady=5, sticky=tk.W)
     ttk.Label(actions_frame, text="Priority:").grid(row=2, column=4, padx=5, pady=5, sticky=tk.W)
     app_instance.write_priority_var = tk.StringVar()
