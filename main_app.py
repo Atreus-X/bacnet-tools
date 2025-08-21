@@ -16,8 +16,18 @@ class BACnetApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("BACnet Tools GUI")
-        
-        self.state('zoomed')
+
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        app_width = 850
+        app_height = 1032
+
+        if screen_width < app_width or screen_height < app_height:
+            app_width = screen_width // 2
+            app_height = screen_height // 2
+
+        self.geometry(f"{app_width}x{app_height}")
 
         self.history = {}
         self.load_history()
@@ -28,16 +38,7 @@ class BACnetApp(tk.Tk):
         
         ui_components.setup_menu(self)
 
-        main_canvas = tk.Canvas(self)
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=main_canvas.yview)
-        scrollable_frame = ttk.Frame(main_canvas)
-        scrollable_frame.bind("<Configure>", lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all")))
-        main_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        main_canvas.configure(yscrollcommand=scrollbar.set)
-        main_canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        main_frame = ttk.Frame(scrollable_frame, padding="10")
+        main_frame = ttk.Frame(self, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         transport_frame = ttk.LabelFrame(main_frame, text="Transport", padding="10")
@@ -63,7 +64,7 @@ class BACnetApp(tk.Tk):
         paned_window.add(browser_frame, weight=3)
 
         output_frame = ttk.LabelFrame(paned_window, text="Output", padding="10")
-        self.output_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, width=80, height=10)
+        self.output_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, width=80, height=5)
         self.output_text.pack(fill=tk.BOTH, expand=True)
         paned_window.add(output_frame, weight=1)
 

@@ -10,10 +10,18 @@ def get_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except AttributeError:
-        # In development, use the script's directory
+        # This is where bundled data files are, not where the user-facing exe is.
+        # We need to determine the path to the exe itself.
+        if getattr(sys, 'frozen', False):
+            # If the application is run as a bundle, the PyInstaller bootloader
+            # sets the sys.frozen attribute to True.
+            base_path = os.path.dirname(sys.executable)
+        else:
+            # In development, use the script's directory
+            base_path = os.path.abspath(".")
+    except Exception:
         base_path = os.path.abspath(".")
+        
     return os.path.join(base_path, relative_path)
 
 def get_network_interfaces():

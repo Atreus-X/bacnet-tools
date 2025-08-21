@@ -1,7 +1,6 @@
 # bacnet_logic.py
 # This file contains the backend logic for executing BACnet commands.
 
-import tkinter as tk
 import os
 import subprocess
 import re
@@ -59,7 +58,7 @@ def execute_bacnet_command(app_instance, command_type):
     
     # Set environment variables based on UI state
     if transport == 'ip' or (transport == 'mstp' and app_instance.mstp_mode_var.get() == 'remote'):
-        env['BACNET_IP_PORT'] = '0'
+        env['BACNET_IP_PORT'] = '47808'
         ip_port_value = app_instance.ip_port_var.get()
         if app_instance.interface_var.get(): env['BACNET_IFACE'] = app_instance.interface_var.get().split('(')[-1].replace(')', '')
         if app_instance.bbmd_ip_var.get(): env['BACNET_BBMD_ADDRESS'] = app_instance.bbmd_ip_var.get()
@@ -112,6 +111,7 @@ def execute_bacnet_command(app_instance, command_type):
         app_instance.update_history('write_priority', app_instance.write_priority_var.get())
     
     app_instance.populate_fields_from_history()
+    import tkinter as tk
     app_instance.output_text.delete('1.0', tk.END)
     app_instance.log("--- Starting Command ---")
     
