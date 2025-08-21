@@ -149,14 +149,14 @@ class BACnetApp(tk.Tk):
         self.destroy()
 
     def load_history(self):
-        history_path = utils.get_resource_path(config.HISTORY_FILE)
+        history_path = utils.get_persistent_data_path(config.HISTORY_FILE)
         if os.path.exists(history_path):
             with open(history_path, 'r') as f: self.history = json.load(f)
 
     def save_history(self):
         self.history['last_transport'] = self.transport_var.get()
         self.history['last_mstp_mode'] = self.mstp_mode_var.get()
-        history_path = utils.get_resource_path(config.HISTORY_FILE)
+        history_path = utils.get_persistent_data_path(config.HISTORY_FILE)
         with open(history_path, 'w') as f: json.dump(self.history, f, indent=4)
 
     def update_history(self, field_key, value):
