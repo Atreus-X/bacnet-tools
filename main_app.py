@@ -30,7 +30,11 @@ class BACnetApp(tk.Tk):
         self.geometry(f"{app_width}x{app_height}")
 
         self.history = {}
+        # Initialize property vars before loading history
+        self.read_property_vars = {'obj_type': '8', 'obj_inst': '4000037', 'prop_id': '77'}
+        self.write_property_vars = {'obj_type': '8', 'obj_inst': '4000037', 'prop_id': '77', 'value': '0', 'tag': 'REAL (4)', 'priority': '16'}
         self.load_history()
+
         self.current_process = None
         self.last_pinged_device = None
         self.object_data = {}
@@ -68,8 +72,17 @@ class BACnetApp(tk.Tk):
         self.output_text.pack(fill=tk.BOTH, expand=True)
         paned_window.add(output_frame, weight=1)
 
-        exit_button = ttk.Button(main_frame, text="Exit", command=self.on_closing)
-        exit_button.pack(pady=10)
+        clear_output_button = ttk.Button(output_frame, text="Clear", command=self.clear_output)
+        clear_output_button.pack(side=tk.RIGHT, pady=5)
+
+        bottom_frame = ttk.Frame(main_frame)
+        bottom_frame.pack(fill=tk.X, pady=10)
+
+        self.reset_button = ttk.Button(bottom_frame, text="Reset to Defaults", command=self.reset_fields_to_defaults)
+        self.reset_button.pack(side=tk.LEFT, padx=5)
+
+        exit_button = ttk.Button(bottom_frame, text="Exit", command=self.on_closing)
+        exit_button.pack(side=tk.RIGHT, padx=5)
 
         self.populate_fields_from_history()
         self.toggle_transport_fields()
@@ -81,6 +94,9 @@ class BACnetApp(tk.Tk):
         self.mac_address_var.trace_add("write", self.update_ping_state)
         self.network_number_var.trace_add("write", self.update_ping_state)
         self.update_all_states()
+
+    def clear_output(self):
+        self.output_text.delete('1.0', tk.END)
 
     def toggle_transport_fields(self):
         if self.ip_frame.winfo_manager(): self.ip_frame.pack_forget()
@@ -133,16 +149,11 @@ class BACnetApp(tk.Tk):
             mstp_mode = self.mstp_mode_var.get()
             if mstp_mode == 'local':
                 if self.mstp_instance_var.get(): state = tk.NORMAL
-            else:
+            else: # Remote
                 if self.instance_number_var.get(): state = tk.NORMAL
         
-        self.read_property_cb.config(state=state)
-        self.write_property_cb.config(state=state)
-        self.write_value_cb.config(state=state)
-        self.write_priority_cb.config(state=state)
-        self.read_button.config(state=state)
-        self.write_button.config(state=state)
-        self.write_tag_cb.config(state='readonly' if state == tk.NORMAL else tk.DISABLED)
+        self.read_property_button.config(state=state)
+        self.write_property_button.config(state=state)
 
     def on_closing(self):
         self.save_history()
@@ -152,10 +163,14 @@ class BACnetApp(tk.Tk):
         history_path = utils.get_persistent_data_path(config.HISTORY_FILE)
         if os.path.exists(history_path):
             with open(history_path, 'r') as f: self.history = json.load(f)
+            self.read_property_vars = self.history.get('read_property_vars', self.read_property_vars)
+            self.write_property_vars = self.history.get('write_property_vars', self.write_property_vars)
 
     def save_history(self):
         self.history['last_transport'] = self.transport_var.get()
         self.history['last_mstp_mode'] = self.mstp_mode_var.get()
+        self.history['read_property_vars'] = self.read_property_vars
+        self.history['write_property_vars'] = self.write_property_vars
         history_path = utils.get_persistent_data_path(config.HISTORY_FILE)
         with open(history_path, 'w') as f: json.dump(self.history, f, indent=4)
 
@@ -165,6 +180,13 @@ class BACnetApp(tk.Tk):
         if value in self.history[field_key]: self.history[field_key].remove(value)
         self.history[field_key].insert(0, value)
         self.history[field_key] = self.history[field_key][:config.HISTORY_LIMIT]
+
+    def clear_history(self):
+        self.history = {}
+        self.save_history()
+        self.read_property_vars = {'obj_type': '8', 'obj_inst': '4000037', 'prop_id': '77'}
+        self.write_property_vars = {'obj_type': '8', 'obj_inst': '4000037', 'prop_id': '77', 'value': '0', 'tag': 'REAL (4)', 'priority': '16'}
+        self.populate_fields_from_history()
 
     def populate_fields_from_history(self):
         self.ip_address_cb['values'] = self.history.get('ip_address', [])
@@ -179,11 +201,6 @@ class BACnetApp(tk.Tk):
         self.mac_address_cb['values'] = self.history.get('mac_address', [])
         self.mstp_instance_cb['values'] = self.history.get('mstp_instance', [])
         self.network_number_cb['values'] = self.history.get('network_number', [])
-        self.read_property_cb['values'] = self.history.get('read_property', [config.DEFAULTS['read_property']])
-        self.write_property_cb['values'] = self.history.get('write_property', [config.DEFAULTS['write_property']])
-        self.write_value_cb['values'] = self.history.get('write_value', [config.DEFAULTS['write_value']])
-        self.write_tag_cb.set(self.history.get('write_tag', config.DEFAULTS['write_tag']))
-        self.write_priority_cb['values'] = self.history.get('write_priority', [config.DEFAULTS['write_priority']])
         self.reset_fields_to_defaults(load_from_history=True)
 
     def reset_fields_to_defaults(self, load_from_history=False):
@@ -193,11 +210,10 @@ class BACnetApp(tk.Tk):
         if not load_from_history or not self.apdu_timeout_var.get(): self.apdu_timeout_var.set(config.DEFAULTS['apdu_timeout'])
         if not load_from_history or not self.bbmd_ttl_var.get(): self.bbmd_ttl_var.set(config.DEFAULTS['bbmd_ttl'])
         if not load_from_history or not self.baud_rate_var.get(): self.baud_rate_var.set(config.DEFAULTS['baud_rate'])
-        if not load_from_history or not self.read_property_var.get(): self.read_property_var.set(config.DEFAULTS['read_property'])
-        if not load_from_history or not self.write_property_var.get(): self.write_property_var.set(config.DEFAULTS['write_property'])
-        if not load_from_history or not self.write_value_var.get(): self.write_value_var.set(config.DEFAULTS['write_value'])
-        if not load_from_history or not self.write_tag_var.get(): self.write_tag_var.set(config.DEFAULTS['write_tag'])
-        if not load_from_history or not self.write_priority_var.get(): self.write_priority_var.set(config.DEFAULTS['write_priority'])
+        
+        if not load_from_history:
+            self.read_property_vars = {'obj_type': '8', 'obj_inst': '4000037', 'prop_id': '77'}
+            self.write_property_vars = {'obj_type': '8', 'obj_inst': '4000037', 'prop_id': '77', 'value': '0', 'tag': 'REAL (4)', 'priority': '16'}
 
     def log(self, message):
         self.output_text.insert(tk.END, message + "\n")
@@ -208,16 +224,16 @@ class BACnetApp(tk.Tk):
         self.ping_button.config(state=tk.DISABLED)
         self.discover_button.config(state=tk.DISABLED)
         self.discover_objects_button.config(state=tk.DISABLED)
-        self.read_button.config(state=tk.DISABLED)
-        self.write_button.config(state=tk.DISABLED)
+        self.read_property_button.config(state=tk.DISABLED)
+        self.write_property_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
 
     def set_ui_state_idle(self):
         self.ping_button.config(state=tk.NORMAL)
         self.discover_button.config(state=tk.NORMAL)
         self.discover_objects_button.config(state=tk.NORMAL if self.last_pinged_device else tk.DISABLED)
-        self.read_button.config(state=tk.NORMAL)
-        self.write_button.config(state=tk.NORMAL)
+        self.read_property_button.config(state=tk.NORMAL)
+        self.write_property_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
         self.update_all_states()
 
@@ -307,6 +323,12 @@ class BACnetApp(tk.Tk):
                 self.log("--- Command stopped by user. ---")
             except Exception as e:
                 self.log(f"--- Error stopping command: {e} ---")
+
+    def open_read_property_popup(self):
+        ui_components.show_read_property_popup(self)
+
+    def open_write_property_popup(self):
+        ui_components.show_write_property_popup(self)
 
     def run_ping(self): bacnet_logic.execute_bacnet_command(self, 'ping')
     def run_discover(self): bacnet_logic.execute_bacnet_command(self, 'discover')

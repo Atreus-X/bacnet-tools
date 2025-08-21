@@ -11,6 +11,7 @@ def setup_menu(app_instance):
     menubar = tk.Menu(app_instance)
     file_menu = tk.Menu(menubar, tearoff=0)
     file_menu.add_command(label="Reset to Defaults", command=app_instance.reset_fields_to_defaults)
+    file_menu.add_command(label="Clear History", command=app_instance.clear_history)
     file_menu.add_separator()
     file_menu.add_command(label="Exit", command=app_instance.on_closing)
     menubar.add_cascade(label="File", menu=file_menu)
@@ -107,44 +108,26 @@ def setup_mstp_widgets(app_instance):
 
 def setup_actions_widgets(app_instance, actions_frame):
     """Creates and places the widgets for the actions frame."""
-    ttk.Label(actions_frame, text="Read Property (objType;inst;prop):").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky=tk.W)
-    app_instance.read_property_var = tk.StringVar()
-    app_instance.read_property_cb = ttk.Combobox(actions_frame, textvariable=app_instance.read_property_var, width=40)
-    app_instance.read_property_cb.grid(row=0, column=2, columnspan=2, padx=5, pady=5, sticky=tk.W)
-    ttk.Label(actions_frame, text="Write Property (objType;inst;prop):").grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky=tk.W)
-    app_instance.write_property_var = tk.StringVar()
-    app_instance.write_property_cb = ttk.Combobox(actions_frame, textvariable=app_instance.write_property_var, width=40)
-    app_instance.write_property_cb.grid(row=1, column=2, columnspan=2, padx=5, pady=5, sticky=tk.W)
-    ttk.Label(actions_frame, text="Value:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
-    app_instance.write_value_var = tk.StringVar()
-    app_instance.write_value_cb = ttk.Combobox(actions_frame, textvariable=app_instance.write_value_var, width=15)
-    app_instance.write_value_cb.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
-    ttk.Label(actions_frame, text="Data Type:").grid(row=2, column=2, padx=5, pady=5, sticky=tk.W)
-    app_instance.write_tag_var = tk.StringVar()
-    app_instance.write_tag_cb = ttk.Combobox(actions_frame, textvariable=app_instance.write_tag_var, width=15, state='readonly')
-    app_instance.write_tag_cb['values'] = list(config.TAG_MAP.keys())
-    app_instance.write_tag_cb.grid(row=2, column=3, padx=5, pady=5, sticky=tk.W)
-    ttk.Label(actions_frame, text="Priority:").grid(row=2, column=4, padx=5, pady=5, sticky=tk.W)
-    app_instance.write_priority_var = tk.StringVar()
-    app_instance.write_priority_cb = ttk.Combobox(actions_frame, textvariable=app_instance.write_priority_var, width=10)
-    app_instance.write_priority_cb.grid(row=2, column=5, padx=5, pady=5, sticky=tk.W)
     app_instance.ping_button = ttk.Button(actions_frame, text="Ping (Who-Is)", command=app_instance.run_ping)
-    app_instance.ping_button.grid(row=3, column=0, padx=5, pady=10)
+    app_instance.ping_button.grid(row=0, column=0, padx=5, pady=5)
     app_instance.discover_button = ttk.Button(actions_frame, text="Discover Devices", command=app_instance.run_discover)
-    app_instance.discover_button.grid(row=3, column=1, padx=5, pady=10)
+    app_instance.discover_button.grid(row=0, column=1, padx=5, pady=5)
     app_instance.discover_objects_button = ttk.Button(actions_frame, text="Discover Objects", command=app_instance.run_discover_objects, state=tk.DISABLED)
-    app_instance.discover_objects_button.grid(row=3, column=2, padx=5, pady=10)
-    app_instance.read_button = ttk.Button(actions_frame, text="Read Property", command=app_instance.run_read_property)
-    app_instance.read_button.grid(row=3, column=3, padx=5, pady=10)
-    app_instance.write_button = ttk.Button(actions_frame, text="Write Property", command=app_instance.run_write_property)
-    app_instance.write_button.grid(row=3, column=4, padx=5, pady=10)
-    app_instance.reset_button = ttk.Button(actions_frame, text="Reset to Defaults", command=app_instance.reset_fields_to_defaults)
-    app_instance.reset_button.grid(row=3, column=5, padx=5, pady=10)
+    app_instance.discover_objects_button.grid(row=0, column=2, padx=5, pady=5)
+    
+    app_instance.read_property_button = ttk.Button(actions_frame, text="Read Property", command=app_instance.open_read_property_popup)
+    app_instance.read_property_button.grid(row=1, column=0, padx=5, pady=5)
+    app_instance.write_property_button = ttk.Button(actions_frame, text="Write Property", command=app_instance.open_write_property_popup)
+    app_instance.write_property_button.grid(row=1, column=1, padx=5, pady=5)
+
     app_instance.stop_button = ttk.Button(actions_frame, text="Stop Command", command=app_instance.stop_current_command, state=tk.DISABLED)
-    app_instance.stop_button.grid(row=3, column=6, padx=5, pady=10)
+    app_instance.stop_button.grid(row=0, column=3, padx=5, pady=5)
 
 def setup_object_browser(app_instance, parent):
     """Creates and places the widgets for the object browser."""
+    clear_button = ttk.Button(parent, text="Clear", command=app_instance.clear_browser)
+    clear_button.pack(pady=5, padx=5, anchor="w")
+
     browser_pane = ttk.PanedWindow(parent, orient=tk.HORIZONTAL)
     browser_pane.pack(fill=tk.BOTH, expand=True)
     
@@ -177,6 +160,88 @@ def setup_object_browser(app_instance, parent):
     app_instance.props_tree.pack(fill=tk.BOTH, expand=True)
     object_panes.add(props_frame, weight=2)
     app_instance.object_tree.bind("<<TreeviewSelect>>", app_instance.on_object_select)
+
+def show_read_property_popup(app_instance):
+    popup = tk.Toplevel(app_instance)
+    popup.title("Read Property")
     
-    clear_button = ttk.Button(parent, text="Clear", command=app_instance.clear_browser)
-    clear_button.pack(pady=5)
+    x = app_instance.winfo_pointerx()
+    y = app_instance.winfo_pointery()
+    popup.geometry(f"+{x}+{y}")
+    
+    ttk.Label(popup, text="Object Type:").grid(row=0, column=0, padx=5, pady=5)
+    obj_type_var = tk.StringVar(value=app_instance.read_property_vars['obj_type'])
+    obj_type_entry = ttk.Entry(popup, textvariable=obj_type_var)
+    obj_type_entry.grid(row=0, column=1, padx=5, pady=5)
+    
+    ttk.Label(popup, text="Instance:").grid(row=1, column=0, padx=5, pady=5)
+    obj_inst_var = tk.StringVar(value=app_instance.read_property_vars['obj_inst'])
+    obj_inst_entry = ttk.Entry(popup, textvariable=obj_inst_var)
+    obj_inst_entry.grid(row=1, column=1, padx=5, pady=5)
+    
+    ttk.Label(popup, text="Property:").grid(row=2, column=0, padx=5, pady=5)
+    prop_id_var = tk.StringVar(value=app_instance.read_property_vars['prop_id'])
+    prop_id_entry = ttk.Entry(popup, textvariable=prop_id_var)
+    prop_id_entry.grid(row=2, column=1, padx=5, pady=5)
+    
+    def on_ok():
+        app_instance.read_property_vars['obj_type'] = obj_type_var.get()
+        app_instance.read_property_vars['obj_inst'] = obj_inst_var.get()
+        app_instance.read_property_vars['prop_id'] = prop_id_var.get()
+        app_instance.run_read_property()
+        popup.destroy()
+
+    ok_button = ttk.Button(popup, text="OK", command=on_ok)
+    ok_button.grid(row=3, column=0, columnspan=2, pady=10)
+
+def show_write_property_popup(app_instance):
+    popup = tk.Toplevel(app_instance)
+    popup.title("Write Property")
+
+    x = app_instance.winfo_pointerx()
+    y = app_instance.winfo_pointery()
+    popup.geometry(f"+{x}+{y}")
+
+    ttk.Label(popup, text="Object Type:").grid(row=0, column=0, padx=5, pady=5)
+    obj_type_var = tk.StringVar(value=app_instance.write_property_vars['obj_type'])
+    obj_type_entry = ttk.Entry(popup, textvariable=obj_type_var)
+    obj_type_entry.grid(row=0, column=1, padx=5, pady=5)
+    
+    ttk.Label(popup, text="Instance:").grid(row=1, column=0, padx=5, pady=5)
+    obj_inst_var = tk.StringVar(value=app_instance.write_property_vars['obj_inst'])
+    obj_inst_entry = ttk.Entry(popup, textvariable=obj_inst_var)
+    obj_inst_entry.grid(row=1, column=1, padx=5, pady=5)
+    
+    ttk.Label(popup, text="Property:").grid(row=2, column=0, padx=5, pady=5)
+    prop_id_var = tk.StringVar(value=app_instance.write_property_vars['prop_id'])
+    prop_id_entry = ttk.Entry(popup, textvariable=prop_id_var)
+    prop_id_entry.grid(row=2, column=1, padx=5, pady=5)
+    
+    ttk.Label(popup, text="Value:").grid(row=3, column=0, padx=5, pady=5)
+    value_var = tk.StringVar(value=app_instance.write_property_vars['value'])
+    value_entry = ttk.Entry(popup, textvariable=value_var)
+    value_entry.grid(row=3, column=1, padx=5, pady=5)
+    
+    ttk.Label(popup, text="Data Type:").grid(row=4, column=0, padx=5, pady=5)
+    tag_var = tk.StringVar(value=app_instance.write_property_vars['tag'])
+    tag_cb = ttk.Combobox(popup, textvariable=tag_var, state='readonly')
+    tag_cb['values'] = list(config.TAG_MAP.keys())
+    tag_cb.grid(row=4, column=1, padx=5, pady=5)
+    
+    ttk.Label(popup, text="Priority:").grid(row=5, column=0, padx=5, pady=5)
+    priority_var = tk.StringVar(value=app_instance.write_property_vars['priority'])
+    priority_entry = ttk.Entry(popup, textvariable=priority_var)
+    priority_entry.grid(row=5, column=1, padx=5, pady=5)
+
+    def on_ok():
+        app_instance.write_property_vars['obj_type'] = obj_type_var.get()
+        app_instance.write_property_vars['obj_inst'] = obj_inst_var.get()
+        app_instance.write_property_vars['prop_id'] = prop_id_var.get()
+        app_instance.write_property_vars['value'] = value_var.get()
+        app_instance.write_property_vars['tag'] = tag_var.get()
+        app_instance.write_property_vars['priority'] = priority_var.get()
+        app_instance.run_write_property()
+        popup.destroy()
+
+    ok_button = ttk.Button(popup, text="OK", command=on_ok)
+    ok_button.grid(row=6, column=0, columnspan=2, pady=10)

@@ -72,6 +72,7 @@ def execute_bacnet_command(app_instance, command_type):
         app_instance.update_history('ip_network_number', app_instance.ip_network_number_var.get())
         app_instance.update_history('ip_port', ip_port_value)
         app_instance.update_history('bbmd_ttl', app_instance.bbmd_ttl_var.get())
+        app_instance.update_history('ip_address', app_instance.ip_address_var.get())
 
     if transport == 'ip':
         device_identifier = app_instance.instance_number_var.get()
@@ -103,13 +104,6 @@ def execute_bacnet_command(app_instance, command_type):
                 if command_type not in ['discover', 'discover_objects'] and not device_identifier: messagebox.showerror("Error", "Instance # is required for this action.\n(Discover the remote network first to find it)"); return
                 app_instance.update_history('instance_number', device_identifier)
 
-    if command_type == 'read': app_instance.update_history('read_property', app_instance.read_property_var.get())
-    elif command_type == 'write':
-        app_instance.update_history('write_property', app_instance.write_property_var.get())
-        app_instance.update_history('write_value', app_instance.write_value_var.get())
-        app_instance.update_history('write_tag', app_instance.write_tag_var.get())
-        app_instance.update_history('write_priority', app_instance.write_priority_var.get())
-    
     app_instance.populate_fields_from_history()
     import tkinter as tk
     app_instance.output_text.delete('1.0', tk.END)
@@ -117,28 +111,40 @@ def execute_bacnet_command(app_instance, command_type):
     
     command, callback = None, None
     if command_type == 'discover':
-        command = [os.path.join(bin_dir, 'bacwi.exe'), "-1"]
+        command = [os.path.join(bin_dir, 'bacwi.exe')]
         callback = app_instance.handle_discover_response
     elif command_type == 'ping':
         command = [os.path.join(bin_dir, 'bacwi.exe'), device_identifier]
+        if transport == 'ip':
+            ip_address = app_instance.ip_address_var.get()
+            if ip_address:
+                command.append(ip_address)
         callback = app_instance.handle_ping_response
     elif command_type == 'discover_objects':
         command = [os.path.join(bin_dir, 'bacepics.exe'), '-v', app_instance.last_pinged_device]
         callback = app_instance.handle_discover_objects_response
     elif command_type == 'read':
-        read_prop_str = app_instance.read_property_var.get()
-        if not read_prop_str: messagebox.showerror("Error", "Read Property field cannot be empty."); return
-        try: obj_type, obj_inst, prop_id = read_prop_str.split(';')
-        except ValueError: messagebox.showerror("Error", "Invalid format for Read Property. Use 'objType;inst;prop'."); return
+        obj_type = app_instance.read_property_vars['obj_type']
+        obj_inst = app_instance.read_property_vars['obj_inst']
+        prop_id = app_instance.read_property_vars['prop_id']
+        if not all([obj_type, obj_inst, prop_id]):
+            messagebox.showerror("Error", "All Read Property fields are required.")
+            return
         command = [os.path.join(bin_dir, 'bacrp.exe'), device_identifier, obj_type, obj_inst, prop_id]
     elif command_type == 'write':
-        write_prop_str = app_instance.write_property_var.get()
-        value, tag_name, priority = app_instance.write_value_var.get(), app_instance.write_tag_var.get(), app_instance.write_priority_var.get()
-        if not all([write_prop_str, value, tag_name, priority]): messagebox.showerror("Error", "All Write Property fields are required."); return
-        try: obj_type, obj_inst, prop_id = write_prop_str.split(';')
-        except ValueError: messagebox.showerror("Error", "Invalid format for Write Property. Use 'objType;inst;prop'."); return
+        obj_type = app_instance.write_property_vars['obj_type']
+        obj_inst = app_instance.write_property_vars['obj_inst']
+        prop_id = app_instance.write_property_vars['prop_id']
+        value = app_instance.write_property_vars['value']
+        tag_name = app_instance.write_property_vars['tag']
+        priority = app_instance.write_property_vars['priority']
+        if not all([obj_type, obj_inst, prop_id, value, tag_name, priority]):
+            messagebox.showerror("Error", "All Write Property fields are required.")
+            return
         tag_value = app_instance.TAG_MAP.get(tag_name)
-        if not tag_value: messagebox.showerror("Error", f"Invalid tag name selected: {tag_name}"); return
+        if not tag_value:
+            messagebox.showerror("Error", f"Invalid tag name selected: {tag_name}")
+            return
         command = [os.path.join(bin_dir, 'bacwp.exe'), device_identifier, obj_type, obj_inst, prop_id, priority, "-1", tag_value, value]
     
     if command:
