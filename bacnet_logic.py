@@ -58,7 +58,7 @@ def execute_bacnet_command(app_instance, command_type):
     
     # Set environment variables based on UI state
     if transport == 'ip' or (transport == 'mstp' and app_instance.mstp_mode_var.get() == 'remote'):
-        env['BACNET_IP_PORT'] = '47808'
+        env['BACNET_IP_PORT'] = '0'
         ip_port_value = app_instance.ip_port_var.get()
         if app_instance.interface_var.get(): env['BACNET_IFACE'] = app_instance.interface_var.get().split('(')[-1].replace(')', '')
         if app_instance.bbmd_ip_var.get(): env['BACNET_BBMD_ADDRESS'] = app_instance.bbmd_ip_var.get()
