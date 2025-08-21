@@ -60,6 +60,17 @@ class BACnetApp(tk.Tk):
         ui_components.setup_actions_widgets(self, self.actions_frame)
         self.actions_frame.pack(fill=tk.X, pady=5)
         
+        # Create and pack the bottom frame first, anchoring it to the bottom
+        bottom_frame = ttk.Frame(main_frame)
+        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+
+        self.reset_button = ttk.Button(bottom_frame, text="Reset to Defaults", command=self.reset_fields_to_defaults)
+        self.reset_button.pack(side=tk.LEFT, padx=5)
+
+        exit_button = ttk.Button(bottom_frame, text="Exit", command=self.on_closing)
+        exit_button.pack(side=tk.RIGHT, padx=5)
+
+        # Now, create the paned window to fill the remaining space
         paned_window = ttk.PanedWindow(main_frame, orient=tk.VERTICAL)
         paned_window.pack(fill=tk.BOTH, expand=True, pady=5)
 
@@ -74,15 +85,6 @@ class BACnetApp(tk.Tk):
 
         clear_output_button = ttk.Button(output_frame, text="Clear", command=self.clear_output)
         clear_output_button.pack(side=tk.RIGHT, pady=5)
-
-        bottom_frame = ttk.Frame(main_frame)
-        bottom_frame.pack(fill=tk.X, pady=10)
-
-        self.reset_button = ttk.Button(bottom_frame, text="Reset to Defaults", command=self.reset_fields_to_defaults)
-        self.reset_button.pack(side=tk.LEFT, padx=5)
-
-        exit_button = ttk.Button(bottom_frame, text="Exit", command=self.on_closing)
-        exit_button.pack(side=tk.RIGHT, padx=5)
 
         self.populate_fields_from_history()
         self.toggle_transport_fields()
@@ -128,15 +130,18 @@ class BACnetApp(tk.Tk):
         state = tk.DISABLED
         transport = self.transport_var.get()
         if transport == 'ip':
-            if self.instance_number_var.get() and self.ip_address_var.get(): state = tk.NORMAL
+            if self.instance_number_var.get() and self.ip_address_var.get():
+                state = tk.NORMAL
             self.ping_button.config(text="Ping (Who-Is)")
         elif transport == 'mstp':
             mstp_mode = self.mstp_mode_var.get()
             if mstp_mode == 'local':
-                if self.mac_address_var.get(): state = tk.NORMAL
+                if self.mac_address_var.get():
+                    state = tk.NORMAL
                 self.ping_button.config(text="Ping (Who-Is)")
             else:
-                if self.network_number_var.get(): state = tk.NORMAL
+                if self.network_number_var.get():
+                    state = tk.NORMAL
                 self.ping_button.config(text="Discover Network")
         self.ping_button.config(state=state)
 
@@ -144,13 +149,16 @@ class BACnetApp(tk.Tk):
         state = tk.DISABLED
         transport = self.transport_var.get()
         if transport == 'ip':
-            if self.instance_number_var.get(): state = tk.NORMAL
+            if self.instance_number_var.get():
+                state = tk.NORMAL
         elif transport == 'mstp':
             mstp_mode = self.mstp_mode_var.get()
             if mstp_mode == 'local':
-                if self.mstp_instance_var.get(): state = tk.NORMAL
+                if self.mstp_instance_var.get():
+                    state = tk.NORMAL
             else: # Remote
-                if self.instance_number_var.get(): state = tk.NORMAL
+                if self.instance_number_var.get():
+                    state = tk.NORMAL
         
         self.read_property_button.config(state=state)
         self.write_property_button.config(state=state)

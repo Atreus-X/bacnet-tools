@@ -114,11 +114,12 @@ def execute_bacnet_command(app_instance, command_type):
         command = [os.path.join(bin_dir, 'bacwi.exe')]
         callback = app_instance.handle_discover_response
     elif command_type == 'ping':
-        command = [os.path.join(bin_dir, 'bacwi.exe'), device_identifier]
         if transport == 'ip':
             ip_address = app_instance.ip_address_var.get()
-            if ip_address:
-                command.append(ip_address)
+            mac_arg = f"{ip_address}:47808"
+            command = [os.path.join(bin_dir, 'bacwi.exe'), '--mac', mac_arg]
+        else: # MS/TP
+            command = [os.path.join(bin_dir, 'bacwi.exe'), device_identifier]
         callback = app_instance.handle_ping_response
     elif command_type == 'discover_objects':
         command = [os.path.join(bin_dir, 'bacepics.exe'), '-v', app_instance.last_pinged_device]
