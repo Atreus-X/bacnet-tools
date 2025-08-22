@@ -108,7 +108,7 @@ def setup_mstp_widgets(app_instance):
 
 def setup_actions_widgets(app_instance, actions_frame):
     """Creates and places the widgets for the actions frame."""
-    app_instance.ping_button = ttk.Button(actions_frame, text="Ping (Who-Is)", command=app_instance.run_ping)
+    app_instance.ping_button = ttk.Button(actions_frame, text="Ping", command=app_instance.run_ping)
     app_instance.ping_button.grid(row=0, column=0, padx=5, pady=5)
     app_instance.discover_button = ttk.Button(actions_frame, text="Discover Devices", command=app_instance.run_discover)
     app_instance.discover_button.grid(row=0, column=1, padx=5, pady=5)

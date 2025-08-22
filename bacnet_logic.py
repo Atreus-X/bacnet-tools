@@ -72,12 +72,10 @@ def execute_bacnet_command(app_instance, command_type):
         app_instance.update_history('ip_network_number', app_instance.ip_network_number_var.get())
         app_instance.update_history('ip_port', ip_port_value)
         app_instance.update_history('bbmd_ttl', app_instance.bbmd_ttl_var.get())
-        app_instance.update_history('ip_address', app_instance.ip_address_var.get())
 
     if transport == 'ip':
         device_identifier = app_instance.instance_number_var.get()
         if command_type not in ['discover', 'discover_objects'] and not device_identifier: messagebox.showerror("Error", "Instance number is required for this action."); return
-        app_instance.update_history('instance_number', device_identifier)
     elif transport == 'mstp':
         mstp_mode = app_instance.mstp_mode_var.get()
         if mstp_mode == 'local':
@@ -102,7 +100,6 @@ def execute_bacnet_command(app_instance, command_type):
             else:
                 device_identifier = app_instance.instance_number_var.get()
                 if command_type not in ['discover', 'discover_objects'] and not device_identifier: messagebox.showerror("Error", "Instance # is required for this action.\n(Discover the remote network first to find it)"); return
-                app_instance.update_history('instance_number', device_identifier)
 
     app_instance.populate_fields_from_history()
     import tkinter as tk
@@ -115,11 +112,14 @@ def execute_bacnet_command(app_instance, command_type):
         callback = app_instance.handle_discover_response
     elif command_type == 'ping':
         if transport == 'ip':
-            ip_address = app_instance.ip_address_var.get()
-            mac_arg = f"{ip_address}:47808"
-            command = [os.path.join(bin_dir, 'bacwi.exe'), '--mac', mac_arg]
-        else: # MS/TP
-            command = [os.path.join(bin_dir, 'bacwi.exe'), device_identifier]
+            device_instance = app_instance.instance_number_var.get()
+            command = [os.path.join(bin_dir, 'bacrp.exe'), device_instance, 'device', device_instance, 'object-name']
+        elif transport == 'mstp':
+            if app_instance.mstp_mode_var.get() == 'local':
+                command = [os.path.join(bin_dir, 'bacwi.exe'), device_identifier]
+            else: # Remote
+                device_instance = app_instance.instance_number_var.get()
+                command = [os.path.join(bin_dir, 'bacrp.exe'), device_instance, 'device', device_instance, 'object-name']
         callback = app_instance.handle_ping_response
     elif command_type == 'discover_objects':
         command = [os.path.join(bin_dir, 'bacepics.exe'), '-v', app_instance.last_pinged_device]

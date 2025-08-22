@@ -135,15 +135,15 @@ class BACnetApp(tk.Tk):
         state = tk.DISABLED
         transport = self.transport_var.get()
         if transport == 'ip':
-            if self.instance_number_var.get() and self.ip_address_var.get():
+            if self.instance_number_var.get():
                 state = tk.NORMAL
-            self.ping_button.config(text="Ping (Who-Is)")
+            self.ping_button.config(text="Ping")
         elif transport == 'mstp':
             mstp_mode = self.mstp_mode_var.get()
             if mstp_mode == 'local':
                 if self.mac_address_var.get():
                     state = tk.NORMAL
-                self.ping_button.config(text="Ping (Who-Is)")
+                self.ping_button.config(text="Ping")
             else:
                 if self.network_number_var.get():
                     state = tk.NORMAL
