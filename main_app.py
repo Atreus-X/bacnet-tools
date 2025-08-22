@@ -97,6 +97,11 @@ class BACnetApp(tk.Tk):
         self.network_number_var.trace_add("write", self.update_ping_state)
         self.update_all_states()
 
+        self.ip_address_cb.bind('<FocusOut>', lambda event: self.update_history('ip_address', self.ip_address_var.get()))
+        self.ip_address_cb.bind('<<ComboboxSelected>>', lambda event: self.update_history('ip_address', self.ip_address_var.get()))
+        self.instance_number_cb.bind('<FocusOut>', lambda event: self.update_history('instance_number', self.instance_number_var.get()))
+        self.instance_number_cb.bind('<<ComboboxSelected>>', lambda event: self.update_history('instance_number', self.instance_number_var.get()))
+
     def clear_output(self):
         self.output_text.delete('1.0', tk.END)
 
